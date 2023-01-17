@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -63,6 +62,7 @@ func main() {
 
 	router.GET("/costs", costsHandler)
 	router.POST("/costs", postOperation)
+	router.DELETE("/costs/:id", deleteOperation)
 
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -81,7 +81,6 @@ func postOperation(c *gin.Context) {
 	var newOperation IOperation
 
 	err := c.BindJSON(&newOperation)
-	fmt.Println(err)
 	if err != nil {
 		c.IndentedJSON(http.StatusBadRequest, gin.H{"message": "bad request"})
 		return
@@ -97,4 +96,18 @@ func postOperation(c *gin.Context) {
 
 	operations = append(operations, newOperationDB)
 	c.IndentedJSON(http.StatusCreated, newOperation)
+}
+
+func deleteOperation(c *gin.Context) {
+	id := c.Param("id")
+
+	for i, operation := range operations {
+		if operation.ID == id {
+			operations = append(operations[:i], operations[i+1:]...)
+			c.IndentedJSON(http.StatusNoContent, operation)
+			return
+		}
+	}
+
+	c.IndentedJSON(http.StatusNotFound, gin.H{"message": "operation not found"})
 }
