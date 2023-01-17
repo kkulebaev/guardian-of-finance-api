@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"log"
 	"net/http"
@@ -47,6 +48,8 @@ func main() {
 	log.Print("Server is starting...")
 
 	router := gin.New()
+
+	router.Use(cors.Default())
 
 	router.GET("/costs", costsHandler)
 	router.POST("/costs", postOperation)
