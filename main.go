@@ -95,7 +95,7 @@ func postOperation(c *gin.Context) {
 	}
 
 	operations = append(operations, newOperationDB)
-	c.IndentedJSON(http.StatusCreated, newOperation)
+	c.IndentedJSON(http.StatusCreated, newOperationDB)
 }
 
 func deleteOperation(c *gin.Context) {
