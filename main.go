@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"log"
 	"net/http"
 	"os"
@@ -23,12 +24,21 @@ type IOperation struct {
 	User     IUser     `json:"user"`
 	Month    string    `json:"month"`
 	Category ICategory `json:"category"`
-	Sum      float32   `json:"sum"`
+	Sum      float64   `json:"sum"`
+}
+
+type IOperationDB struct {
+	ID       string    `json:"id"`
+	User     IUser     `json:"user"`
+	Month    string    `json:"month"`
+	Category ICategory `json:"category"`
+	Sum      float64   `json:"sum"`
 }
 
 var (
-	operations = []IOperation{
+	operations = []IOperationDB{
 		{
+			ID: uuid.New().String(),
 			User: IUser{
 				ID:   1,
 				Name: "Konstantin",
@@ -64,13 +74,7 @@ func main() {
 }
 
 func costsHandler(c *gin.Context) {
-	var costs = getCosts()
-
-	c.IndentedJSON(http.StatusOK, costs)
-}
-
-func getCosts() []IOperation {
-	return operations
+	c.IndentedJSON(http.StatusOK, operations)
 }
 
 func postOperation(c *gin.Context) {
@@ -83,6 +87,14 @@ func postOperation(c *gin.Context) {
 		return
 	}
 
-	operations = append(operations, newOperation)
+	newOperationDB := IOperationDB{
+		ID:       uuid.New().String(),
+		User:     newOperation.User,
+		Month:    newOperation.Month,
+		Category: newOperation.Category,
+		Sum:      newOperation.Sum,
+	}
+
+	operations = append(operations, newOperationDB)
 	c.IndentedJSON(http.StatusCreated, newOperation)
 }
