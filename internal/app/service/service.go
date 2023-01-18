@@ -1,12 +1,9 @@
-package main
+package service
 
 import (
-	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"log"
 	"net/http"
-	"os"
 )
 
 type ICategory struct {
@@ -34,50 +31,13 @@ type IOperationDB struct {
 	Sum      float64   `json:"sum"`
 }
 
-var (
-	operations = []IOperationDB{
-		{
-			ID: uuid.New().String(),
-			User: IUser{
-				ID:   1,
-				Name: "Konstantin",
-			},
-			Month: "2023-01-17T14:23:58.911Z",
-			Category: ICategory{
-				ID:    "transport",
-				Label: "Транспорт",
-			},
-			Sum: 20000,
-		},
-	}
-)
+var operations []IOperationDB
 
-func main() {
-	gin.SetMode(gin.ReleaseMode)
-	log.Print("Server is starting...")
-
-	router := gin.New()
-
-	router.Use(cors.Default())
-
-	router.GET("/costs", costsHandler)
-	router.POST("/costs", postOperation)
-	router.DELETE("/costs/:id", deleteOperation)
-
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8080"
-	}
-	if err := router.Run(":" + port); err != nil {
-		log.Panicf("error: %s", err)
-	}
-}
-
-func costsHandler(c *gin.Context) {
+func CostsHandler(c *gin.Context) {
 	c.IndentedJSON(http.StatusOK, operations)
 }
 
-func postOperation(c *gin.Context) {
+func PostOperation(c *gin.Context) {
 	var newOperation IOperation
 
 	err := c.BindJSON(&newOperation)
@@ -98,7 +58,7 @@ func postOperation(c *gin.Context) {
 	c.IndentedJSON(http.StatusCreated, newOperationDB)
 }
 
-func deleteOperation(c *gin.Context) {
+func DeleteOperation(c *gin.Context) {
 	id := c.Param("id")
 
 	for i, operation := range operations {
