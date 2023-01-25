@@ -1,7 +1,7 @@
 POST http://localhost:8080/costs
 Content-Type: application/json
 
-{"user":{"id":2,"name":"Дарья"},"month2":"2023-05-18T10:57:54.216Z","category":{"id":"other","label":"Остальное"},"sum":2000}
+{"user":{"id":2,"name":"Дарья"},"month":"2023-01-21","category":{"id":1,"label":"Аренда квартиры"},"sum":2000}
 
 ###
 GET http://localhost:8080/costs
