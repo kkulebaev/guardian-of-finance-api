@@ -1,30 +1,43 @@
 package main
 
 import (
-	"github.com/gin-contrib/cors"
-	"github.com/gin-gonic/gin"
-	"guardian-of-finance-api/internal/app/service"
+	"fmt"
+	"github.com/jmoiron/sqlx"
+	_ "github.com/lib/pq"
+	"guardian-of-finance-api/internal/app/handler"
 	"log"
-	"os"
 )
 
+type Config struct {
+	Host     string
+	Port     string
+	Username string
+	Password string
+	DBName   string
+	SSLMode  string
+}
+
+var cfg = Config{
+	Host:     "localhost",
+	Port:     "5436",
+	Username: "postgres",
+	DBName:   "postgres",
+	SSLMode:  "disable",
+	Password: "qwerty123",
+}
+
 func main() {
-	gin.SetMode(gin.ReleaseMode)
-	log.Print("Server is starting...")
-
-	router := gin.New()
-
-	router.Use(cors.Default())
-
-	router.GET("/costs", service.CostsHandler)
-	router.POST("/costs", service.PostOperation)
-	router.DELETE("/costs/:id", service.DeleteOperation)
-
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8080"
+	// Создание и подключение к базе данных
+	db, err := sqlx.Open("postgres", fmt.Sprintf("host=%s port=%s user=%s dbname=%s password=%s sslmode=%s",
+		cfg.Host, cfg.Port, cfg.Username, cfg.DBName, cfg.Password, cfg.SSLMode))
+	if err != nil {
+		log.Fatalf("failed to initialize db: %s", err)
 	}
-	if err := router.Run(":" + port); err != nil {
-		log.Panicf("error: %s", err)
+
+	err = db.Ping()
+	if err != nil {
+		log.Fatalf("failed to initialize db: %s", err)
 	}
+
+	handler.InitRoutes()
 }

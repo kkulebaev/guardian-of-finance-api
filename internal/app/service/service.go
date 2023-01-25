@@ -1,19 +1,22 @@
 package service
 
 import (
+	"fmt"
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
+	"github.com/jmoiron/sqlx"
+	"log"
 	"net/http"
+	"strconv"
 )
 
 type ICategory struct {
-	ID    string `json:"id"`
+	ID    int    `json:"id"`
 	Label string `json:"label"`
 }
 
 type IUser struct {
-	ID   float64 `json:"id"`
-	Name string  `json:"name"`
+	ID   int    `json:"id"`
+	Name string `json:"name"`
 }
 
 type IOperation struct {
@@ -24,20 +27,43 @@ type IOperation struct {
 }
 
 type IOperationDB struct {
-	ID       string    `json:"id"`
+	ID       int       `json:"id"`
 	User     IUser     `json:"user"`
 	Month    string    `json:"month"`
 	Category ICategory `json:"category"`
 	Sum      float64   `json:"sum"`
 }
 
+type Config struct {
+	Host     string
+	Port     string
+	Username string
+	Password string
+	DBName   string
+	SSLMode  string
+}
+
+var cfg = Config{
+	Host:     "localhost",
+	Port:     "5436",
+	Username: "postgres",
+	DBName:   "postgres",
+	SSLMode:  "disable",
+	Password: "qwerty123",
+}
+
+const (
+	operationTable = "operations"
+)
+
 var operations []IOperationDB
 
-func CostsHandler(c *gin.Context) {
+func GetListOperation(c *gin.Context) {
 	c.IndentedJSON(http.StatusOK, operations)
 }
 
-func PostOperation(c *gin.Context) {
+func CreateOperation(c *gin.Context) {
+	log.Print("test")
 	var newOperation IOperation
 
 	err := c.BindJSON(&newOperation)
@@ -46,20 +72,34 @@ func PostOperation(c *gin.Context) {
 		return
 	}
 
-	newOperationDB := IOperationDB{
-		ID:       uuid.New().String(),
-		User:     newOperation.User,
-		Month:    newOperation.Month,
-		Category: newOperation.Category,
-		Sum:      newOperation.Sum,
+	db, err := sqlx.Open("postgres", fmt.Sprintf("host=%s port=%s user=%s dbname=%s password=%s sslmode=%s",
+		cfg.Host, cfg.Port, cfg.Username, cfg.DBName, cfg.Password, cfg.SSLMode))
+	if err != nil {
+		log.Fatalf("failed to initialize db: %s", err)
 	}
 
-	operations = append(operations, newOperationDB)
-	c.IndentedJSON(http.StatusCreated, newOperationDB)
+	err = db.Ping()
+	if err != nil {
+		log.Fatalf("failed to initialize db: %s", err)
+	}
+	log.Print("SUCCESS")
+	query := fmt.Sprintf("INSERT INTO %s (user_id, month_date, category_id, total) values ($1, $2, $3, $4) RETURNING id;", operationTable)
+	log.Print("query: ", query)
+	row := db.QueryRow(query, newOperation.User.ID, newOperation.Month, newOperation.Category.ID, newOperation.Sum)
+	var id int
+	if err := row.Scan(&id); err != nil {
+		c.IndentedJSON(http.StatusBadRequest, gin.H{"message": "bad request2"})
+	}
+	log.Print("id: ", id)
+
+	c.IndentedJSON(http.StatusCreated, row)
 }
 
 func DeleteOperation(c *gin.Context) {
-	id := c.Param("id")
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		log.Fatalf("failed to parsing id when removing operation: %s", err)
+	}
 
 	for i, operation := range operations {
 		if operation.ID == id {
