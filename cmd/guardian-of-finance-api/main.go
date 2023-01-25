@@ -1,30 +1,15 @@
 package main
 
 import (
-	"github.com/gin-contrib/cors"
-	"github.com/gin-gonic/gin"
-	"guardian-of-finance-api/internal/app/service"
+	"github.com/joho/godotenv"
+	_ "github.com/lib/pq"
+	"guardian-of-finance-api/internal/app/handler"
 	"log"
-	"os"
 )
 
 func main() {
-	gin.SetMode(gin.ReleaseMode)
-	log.Print("Server is starting...")
-
-	router := gin.New()
-
-	router.Use(cors.Default())
-
-	router.GET("/costs", service.CostsHandler)
-	router.POST("/costs", service.PostOperation)
-	router.DELETE("/costs/:id", service.DeleteOperation)
-
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8080"
+	if err := godotenv.Load(); err != nil {
+		log.Fatal("failed loading environment variables")
 	}
-	if err := router.Run(":" + port); err != nil {
-		log.Panicf("error: %s", err)
-	}
+	handler.InitRoutes()
 }
