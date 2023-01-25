@@ -3,9 +3,10 @@ package service
 import (
 	"fmt"
 	"github.com/gin-gonic/gin"
-	"github.com/jmoiron/sqlx"
+	"guardian-of-finance-api/internal/app/database"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
 )
 
@@ -34,24 +35,6 @@ type IOperationDB struct {
 	Sum      float64   `json:"sum"`
 }
 
-type Config struct {
-	Host     string
-	Port     string
-	Username string
-	Password string
-	DBName   string
-	SSLMode  string
-}
-
-var cfg = Config{
-	Host:     "localhost",
-	Port:     "5436",
-	Username: "postgres",
-	DBName:   "postgres",
-	SSLMode:  "disable",
-	Password: "qwerty123",
-}
-
 const (
 	operationTable = "operations"
 )
@@ -63,35 +46,36 @@ func GetListOperation(c *gin.Context) {
 }
 
 func CreateOperation(c *gin.Context) {
-	log.Print("test")
 	var newOperation IOperation
+	var id int
+
+	var cfg = database.Config{
+		Host:     os.Getenv("DB_HOST"),
+		Port:     os.Getenv("DB_PORT"),
+		Username: os.Getenv("DB_USERNAME"),
+		DBName:   os.Getenv("DB_NAME"),
+		Password: os.Getenv("DB_PASSWORD"),
+		SSLMode:  "require",
+	}
 
 	err := c.BindJSON(&newOperation)
 	if err != nil {
-		c.IndentedJSON(http.StatusBadRequest, gin.H{"message": "bad request"})
+		c.IndentedJSON(http.StatusBadRequest, gin.H{"message": "incorrect post body"})
 		return
 	}
 
-	db, err := sqlx.Open("postgres", fmt.Sprintf("host=%s port=%s user=%s dbname=%s password=%s sslmode=%s",
-		cfg.Host, cfg.Port, cfg.Username, cfg.DBName, cfg.Password, cfg.SSLMode))
+	db, err := database.NewPostgresDB(cfg)
 	if err != nil {
 		log.Fatalf("failed to initialize db: %s", err)
 	}
 
-	err = db.Ping()
-	if err != nil {
-		log.Fatalf("failed to initialize db: %s", err)
-	}
-	log.Print("SUCCESS")
 	query := fmt.Sprintf("INSERT INTO %s (user_id, month_date, category_id, total) values ($1, $2, $3, $4) RETURNING id;", operationTable)
-	log.Print("query: ", query)
 	row := db.QueryRow(query, newOperation.User.ID, newOperation.Month, newOperation.Category.ID, newOperation.Sum)
-	var id int
 	if err := row.Scan(&id); err != nil {
-		c.IndentedJSON(http.StatusBadRequest, gin.H{"message": "bad request2"})
+		c.IndentedJSON(http.StatusBadRequest, gin.H{"message": "incorrect db query"})
 	}
-	log.Print("id: ", id)
 
+	log.Print("created operation id: ", id)
 	c.IndentedJSON(http.StatusCreated, row)
 }
 
